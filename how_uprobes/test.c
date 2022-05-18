@@ -1,3 +1,4 @@
+// gcc test.c, then run as root (UID=0)
 #include <errno.h>
 #include <fcntl.h>
 #include <stdbool.h>
@@ -77,10 +78,12 @@ bool uprobe_set(uprobe *up, bool enable) {
   if (!up)
     return false;
 
-  // Enable the group
+  // Enable the group; in reality this enables every _event_ under the group,
+  // but we're doing this to talk about it!
   {
     static char grouppath[1024] = {0};
-    snprintf(grouppath, sizeof(grouppath), "/sys/kernel/tracing/events/%s/enable", up->grp);
+    static char fmt[] = "/sys/kernel/tracing/events/%s/enable";
+    snprintf(grouppath, sizeof(grouppath), fmt, up->grp);
     int fd = open(grouppath, O_WRONLY);
     write(fd, enable ? "1" : "0", 1);
     close(fd);
@@ -89,7 +92,8 @@ bool uprobe_set(uprobe *up, bool enable) {
   // Enable the event
   {
     static char eventpath[1024] = {0};
-    snprintf(eventpath, sizeof(eventpath), "/sys/kernel/tracing/events/%s/%s/enable", up->grp, up->event);
+    static char fmt[] = "/sys/kernel/tracing/events/%s/%s/enable";
+    snprintf(eventpath, sizeof(eventpath), fmt, up->grp, up->event);
     int fd = open(eventpath, O_WRONLY);
     write(fd, enable ? "1" : "0", 1);
     close(fd);
